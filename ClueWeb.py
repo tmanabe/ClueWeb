@@ -2,7 +2,7 @@ import gzip
 import re
 
 
-class Collection(dict):  # is a list of Files
+class Collection(dict):  # is a dict where str (segment name) -> Segment
     def collect(self, document_ids, http=None, warc=None):
         d = {}
         result = []
