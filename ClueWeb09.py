@@ -6,7 +6,6 @@ class ClueWeb09(ClueWeb.Collection):
     def read(self, part_path):
         part_path = part_path.rstrip(os.sep)
         for segment_name in os.listdir(part_path):
-            print(segment_name)
             segment_path = os.path.join(part_path, segment_name)
             self[segment_name] = Segment().read(segment_path)
         return self

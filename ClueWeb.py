@@ -58,8 +58,15 @@ class File(str):  # is the path to a gzip file
         return self
 
     def __init__(self, path):
+        self.io = None
+
+    def open(self):
         self.io = gzip.open(self)
         self.read_meta()
+
+    def close(self):
+        self.io.close()
+        self.io = None
 
     def read_meta(self):
         meta = {}
@@ -81,7 +88,7 @@ class File(str):  # is the path to a gzip file
         return self.line != b''
 
     def collect(self, document_ids, http=None, warc=None):
-        print(self, document_ids)
+        self.open()
         result = []
         for target_id in sorted(document_ids):
             while(self.is_active()):
@@ -104,6 +111,7 @@ class File(str):  # is the path to a gzip file
                     self.read_http()
                     self.read_body()
                     self.read_tail()
+        self.close()
         if len(result) < len(document_ids):
             raise IndexError('Some documents were not found.')
         else:
@@ -120,6 +128,7 @@ class File(str):  # is the path to a gzip file
             return default
 
     def iterate(self, func, need_http=False, need_warc=False):
+        self.open()
         while(self.is_active()):
             warc = {}
             self.read_warc(warc if need_warc else None)
@@ -128,6 +137,7 @@ class File(str):  # is the path to a gzip file
             body = self.read_body()
             func(body, http, warc)
             self.read_tail()
+        self.close()
 
     def read_warc(self, result=None):
         line = self.line
@@ -193,6 +203,7 @@ class DocumentID(str):
             return document_id
         if isinstance(document_id, bytes):
             document_id = document_id.decode('utf-8')
+        document_id = document_id.lower()
         tokens = document_id.split('-')
         if len(tokens) != 4:
             raise ValueError('Invalid document ID: %s' % document_id)
