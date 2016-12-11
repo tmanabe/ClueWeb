@@ -1,4 +1,5 @@
 import ClueWeb
+from glob import glob
 import os
 
 
@@ -9,6 +10,11 @@ class ClueWeb09(ClueWeb.Collection):
             segment_path = os.path.join(part_path, segment_name)
             self[segment_name] = Segment().read(segment_path)
         return self
+
+    def read_disk(self, disk_path):
+        disk_path = disk_path.rstrip(os.sep)
+        for part_path in glob(os.path.join(disk_path, 'ClueWeb09_*')):
+            self.read(part_path)
 
 
 class Segment(ClueWeb.Segment):
