@@ -15,6 +15,7 @@ class ClueWeb09(ClueWeb.Collection):
         disk_path = disk_path.rstrip(os.sep)
         for part_path in glob(os.path.join(disk_path, 'ClueWeb09_*')):
             self.read(part_path)
+        return self
 
 
 class Segment(ClueWeb.Segment):
