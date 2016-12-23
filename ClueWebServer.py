@@ -7,10 +7,18 @@ from ClueWeb12 import ClueWeb12
 from dateutil import parser as date_parser
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
+from socketserver import ThreadingMixIn
+import json
+import subprocess
+import sys
 
 
 DEFAULT_ADDR = '127.0.0.1'
 DEFAULT_PORT = 8080
+
+
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    pass
 
 
 class ClueWebServer(BaseHTTPRequestHandler):
@@ -18,38 +26,38 @@ class ClueWebServer(BaseHTTPRequestHandler):
     @classmethod
     def run(cls, clueweb, addr=DEFAULT_ADDR, port=DEFAULT_PORT):
         cls.clueweb = clueweb
-        cls.server = HTTPServer((addr, port), cls)
+        cls.server = ThreadedHTTPServer((addr, port), cls)
         cls.server.serve_forever()
 
     def do_GET(self):
         document_id = self.path.rsplit('/', 1)[1]
         if document_id in ['favicon.ico']:
             return
-        http, warc = [], []
+        command = sys.argv[0].replace('ClueWebServer', 'helper')
         try:
-            body = self.clueweb.get(document_id, None, http, warc)
+            file_path = self.clueweb.get_file(document_id)
         except Exception:
             self.send_response(500)
             self.wfile.write(b'ClueWebServer: Internal error')
             return
-        if body is None:
+        result = subprocess.check_output(['python', command, file_path, document_id])
+        result = result.decode('utf-8')
+        result = json.loads(result)
+        if result['body'] is None:
             self.send_response(404)
             self.wfile.write(b'ClueWebServer: Not found')
             return
         else:
             self.send_response(200)
-        http, warc = http[0], warc[0]
-        date = http[b'Date'].decode('utf-8').strip()
+        date = result['http']['Date']
         date = date_parser.parse(date).timestamp()
-        url = warc[b'WARC-Target-URI']
-        href = b'http://web.archive.org/web/%i/%s' % (int(date), url)
-        base = b'<base href="%s">' % href
-        self.send_header('Content-Type',
-                         http[b'Content-Type'].decode('utf-8').strip(),
-                         )
+        url = result['warc']['WARC-Target-URI']
+        href = 'http://web.archive.org/web/%i/%s' % (int(date), url)
+        base = '<base href="%s">' % href
+        self.send_header('Content-Type', result['http']['Content-Type'])
         self.end_headers()
-        self.wfile.write(base)
-        self.wfile.write(body)
+        self.wfile.write(base.encode('utf-8'))
+        self.wfile.write(result['body'].encode('utf-8'))
         return
 
 

@@ -16,8 +16,11 @@ class Collection(dict):  # is a dict where str (segment name) -> Segment
         return result
 
     def get(self, document_id, default, http=None, warc=None):
+        return self.get_file(document_id).get(document_id, default, http, warc)
+
+    def get_file(self, document_id):
         document_id = DocumentID(document_id)
-        return self[document_id.segment].get(document_id, default, http, warc)
+        return self[document_id.segment].get_file(document_id)
 
     def iterate(self, func, need_http=False, need_warc=False):
         for s in self.values():
@@ -41,8 +44,11 @@ class Segment(list):  # is a list of Files
         return result
 
     def get(self, document_id, default, http=None, warc=None):
+        return self.get_file(document_id).get(document_id, default, http, warc)
+
+    def get_file(self, document_id):
         document_id = DocumentID(document_id)
-        return self[document_id.file].get(document_id, default, http, warc)
+        return self[document_id.file]
 
     def iterate(self, func, need_http=False, need_warc=False):
         for f in self:
@@ -57,16 +63,14 @@ class File(str):  # is the path to a gzip file
         self = str.__new__(self, path)
         return self
 
-    def __init__(self, path):
-        self.io = None
-
     def open(self):
-        self.io = gzip.open(self)
+        self.raw_io = open(self, 'rb', buffering=10**8)  # 100MB
+        self.io = gzip.GzipFile(self, fileobj=self.raw_io)
         self.read_meta()
 
     def close(self):
         self.io.close()
-        self.io = None
+        self.raw_io.close()
 
     def read_meta(self):
         meta = {}
@@ -192,7 +196,7 @@ class File(str):  # is the path to a gzip file
 
     def __del__(self):
         try:
-            self.io.close()
+            self.close()
         except AttributeError:
             pass
 
