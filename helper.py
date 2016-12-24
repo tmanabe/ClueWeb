@@ -7,17 +7,18 @@ import sys
 
 
 _, file_path, document_id = sys.argv
+CODEC = ['utf-8', 'replace']
 result, http, warc = {}, [], []
 f = ClueWeb.File(file_path)
-try:
-    result['body'] = f.get(document_id, None, http, warc).decode('utf-8')
-except Exception:
-    result['body'] = None
+# try:
+result['body'] = f.get(document_id, None, http, warc).decode(*CODEC)
+# except Exception:
+    # result['body'] = None
 if result['body'] is not None:
     http, warc = http[0], warc[0]
     h = result['http'] = {}
-    h['Content-Type'] = http[b'Content-Type'].decode('utf-8').strip()
-    h['Date'] = http[b'Date'].decode('utf-8').strip()
+    h['Content-Type'] = http[b'Content-Type'].decode(*CODEC).strip()
+    h['Date'] = http[b'Date'].decode(*CODEC).strip()
     w = result['warc'] = {}
-    w['WARC-Target-URI'] = warc[b'WARC-Target-URI'].decode('utf-8')
+    w['WARC-Target-URI'] = warc[b'WARC-Target-URI'].decode(*CODEC)
 print(json.dumps(result))
