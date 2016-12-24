@@ -10,10 +10,10 @@ _, file_path, document_id = sys.argv
 CODEC = ['utf-8', 'replace']
 result, http, warc = {}, [], []
 f = ClueWeb.File(file_path)
-# try:
-result['body'] = f.get(document_id, None, http, warc).decode(*CODEC)
-# except Exception:
-    # result['body'] = None
+try:
+    result['body'] = f.get(document_id, None, http, warc).decode(*CODEC)
+except Exception:
+    result['body'] = None
 if result['body'] is not None:
     http, warc = http[0], warc[0]
     h = result['http'] = {}
