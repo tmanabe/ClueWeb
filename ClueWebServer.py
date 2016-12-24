@@ -7,8 +7,8 @@ from ClueWeb12 import ClueWeb12
 from dateutil import parser as date_parser
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
-from socketserver import ThreadingMixIn
 import json
+from socketserver import ThreadingMixIn
 import subprocess
 import sys
 
@@ -33,22 +33,26 @@ class ClueWebServer(BaseHTTPRequestHandler):
         document_id = self.path.rsplit('/', 1)[1]
         if document_id in ['favicon.ico']:
             return
-        command = sys.argv[0].replace('ClueWebServer', 'helper')
         try:
             file_path = self.clueweb.get_file(document_id)
         except Exception:
             self.send_response(500)
+            self.end_headers()
             self.wfile.write(b'ClueWebServer: Internal error')
             return
-        result = subprocess.check_output(['python', command, file_path, document_id])
+        command = sys.argv[0].replace('ClueWebServer', 'helper')
+        result = subprocess.check_output(['python',
+                                          command,
+                                          file_path,
+                                          document_id])
         result = result.decode('utf-8')
         result = json.loads(result)
         if result['body'] is None:
             self.send_response(404)
+            self.end_headers()
             self.wfile.write(b'ClueWebServer: Not found')
             return
-        else:
-            self.send_response(200)
+        self.send_response(200)
         date = result['http']['Date']
         date = date_parser.parse(date).timestamp()
         url = result['warc']['WARC-Target-URI']
@@ -66,27 +70,23 @@ if __name__ == '__main__':
         description='Runs a HTTP server which serves ClueWeb collection'
     )
     argument_parser.add_argument('--address', '-a',
-                        default=DEFAULT_ADDR,
-                        help='the address of the server',
-                        metavar='str',
-                        type=str,
-                        )
+                                 default=DEFAULT_ADDR,
+                                 help='the address of the server',
+                                 metavar='str',
+                                 type=str)
     argument_parser.add_argument('disks',
-                        help='the path to a ClueWeb disk',
-                        metavar='path',
-                        nargs='+',
-                        type=str,
-                        )
+                                 help='the path to a ClueWeb disk',
+                                 metavar='path',
+                                 nargs='+',
+                                 type=str)
     argument_parser.add_argument('--port', '-p',
-                        default=DEFAULT_PORT,
-                  help='the port of the server',
-                        metavar='int',
-                        type=int,
-                        )
+                                 default=DEFAULT_PORT,
+                                 help='the port of the server',
+                                 metavar='int',
+                                 type=int)
     argument_parser.add_argument('--twelve', '-t',
-                        action='store_true',
-                        help='loads ClueWeb12 (instead of ClueWeb09)',
-                        )
+                                 action='store_true',
+                                 help='loads ClueWeb12 (instead of 09)')
     arg_dict = argument_parser.parse_args()
     if arg_dict.twelve:
         c = ClueWeb12()

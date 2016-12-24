@@ -11,7 +11,7 @@ result, http, warc = {}, [], []
 f = ClueWeb.File(file_path)
 try:
     result['body'] = f.get(document_id, None, http, warc).decode('utf-8')
-except:
+except Exception:
     result['body'] = None
 if result['body'] is not None:
     http, warc = http[0], warc[0]
