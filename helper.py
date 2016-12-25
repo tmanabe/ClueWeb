@@ -18,7 +18,10 @@ if result['body'] is not None:
     http, warc = http[0], warc[0]
     h = result['http'] = {}
     h['Content-Type'] = http[b'Content-Type'].decode(*CODEC).strip()
-    h['Date'] = http[b'Date'].decode(*CODEC).strip()
+    if b'Date' in http:
+        h['Date'] = http[b'Date'].decode(*CODEC).strip()
+    else:
+        h['Date'] = 'Thu, 10 May 2012 23:59:59 GMT'
     w = result['warc'] = {}
     w['WARC-Target-URI'] = warc[b'WARC-Target-URI'].decode(*CODEC)
 print(json.dumps(result))
