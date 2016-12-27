@@ -17,7 +17,10 @@ except Exception:
 if result['body'] is not None:
     http, warc = http[0], warc[0]
     h = result['http'] = {}
-    h['Content-Type'] = http[b'Content-Type'].decode(*CODEC).strip()
+    if b'Content-Type' in http:
+        h['Content-Type'] = http[b'Content-Type'].decode(*CODEC).strip()
+    else:
+        h['Content-Type'] = 'text/html'
     if b'Date' in http:
         h['Date'] = http[b'Date'].decode(*CODEC).strip()
     else:
