@@ -13,7 +13,7 @@ class ClueWeb12(ClueWeb.Collection):
                     segment_path = os.path.join(part_path, segment_name)
                     self[segment_name] = Segment().read(segment_path)
             except FileNotFoundError:
-                break
+                continue
         return self
 
 

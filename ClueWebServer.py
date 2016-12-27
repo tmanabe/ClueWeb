@@ -90,8 +90,10 @@ if __name__ == '__main__':
     arg_dict = argument_parser.parse_args()
     if arg_dict.twelve:
         c = ClueWeb12()
+        for disk in arg_dict.disks:
+            c.read(disk)
     else:
         c = ClueWeb09()
-    for disk in arg_dict.disks:
-        c.read_disk(disk)
+        for disk in arg_dict.disks:
+            c.read_disk(disk)
     ClueWebServer.run(c, arg_dict.address, arg_dict.port)
