@@ -32,6 +32,9 @@ class ClueWebServer(BaseHTTPRequestHandler):
     def do_GET(self):
         document_id = self.path.rsplit('/', 1)[1]
         if document_id in ['favicon.ico']:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b'ClueWebServer: Not found')
             return
         try:
             file_path = self.clueweb.get_file(document_id)
@@ -55,7 +58,7 @@ class ClueWebServer(BaseHTTPRequestHandler):
         self.send_response(200)
         date = result['http']['Date']
         date = date_parser.parse(date).timestamp()
-        url = result['warc']['WARC-Target-URI']
+        url = result['warc']['WARC-Target-URI'].strip()
         href = 'http://web.archive.org/web/%i/%s' % (int(date), url)
         base = '<base href="%s">' % href
         self.send_header('Content-Type', result['http']['Content-Type'])
