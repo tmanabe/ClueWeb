@@ -20,7 +20,7 @@ if result['body'] is not None:
     if b'Content-Type' in http:
         h['Content-Type'] = http[b'Content-Type'].decode(*CODEC).strip()
     else:
-        h['Content-Type'] = 'text/html'
+        h['Content-Type'] = 'text/html; charset=utf-8'
     if b'Date' in http:
         h['Date'] = http[b'Date'].decode(*CODEC).strip()
     else:

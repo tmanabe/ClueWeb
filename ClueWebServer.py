@@ -61,7 +61,10 @@ class ClueWebServer(BaseHTTPRequestHandler):
         url = result['warc']['WARC-Target-URI'].strip()
         href = 'http://web.archive.org/web/%i/%s' % (int(date), url)
         base = '<base href="%s">' % href
-        self.send_header('Content-Type', result['http']['Content-Type'])
+        try:
+            self.send_header('Content-Type', result['http']['Content-Type'])
+        except Exception:
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.end_headers()
         self.wfile.write(base.encode('utf-8'))
         self.wfile.write(result['body'].encode('utf-8'))
