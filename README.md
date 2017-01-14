@@ -10,7 +10,7 @@ Tools for the ClueWeb document collections.
 
 ### ClueWeb12 example (in case of 2x 4TB HDDs)
 
-`python ClueWebServer.py --twelve E:/Disk01 E:/Disk02 F:/Disk03 F:/Disk04`
+`python ClueWebServer.py --twelve E:/Disk1 E:/Disk2 F:/Disk3 F:/Disk4`
 
 (On another terminal window)
 
