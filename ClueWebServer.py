@@ -15,6 +15,7 @@ import sys
 
 DEFAULT_ADDR = '127.0.0.1'
 DEFAULT_PORT = 8080
+HASH = None
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
@@ -30,6 +31,12 @@ class ClueWebServer(BaseHTTPRequestHandler):
         cls.server.serve_forever()
 
     def do_GET(self):
+        if HASH is not None and self.headers.get('Authorization') != 'Basic ' + HASH:
+            self.send_response(401)
+            self.send_header('WWW-Authenticate', 'Basic')
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            return
         document_id = self.path.rsplit('/', 1)[1]
         if document_id in ['favicon.ico']:
             self.send_response(404)
