@@ -24,7 +24,7 @@ class Collection(dict):  # is a dict where str (segment name) -> Segment
 
     def iterate(self, func, need_http=False, need_warc=False):
         for s in self.values():
-            s.iterate(self, func, need_http, need_warc)
+            s.iterate(func, need_http, need_warc)
 
     def read(self, disk_path):
         raise NotImplementedError()
@@ -40,7 +40,12 @@ class Segment(list):  # is a list of Files
                 d[document_id.file] = []
             d[document_id.file].append(document_id)
         for (i, document_ids) in d.items():
-            result += self[i].collect(document_ids, http, warc)
+            try:
+                result += self[i].collect(document_ids, http, warc)
+            except Exception:
+                import traceback
+                print('Segment#collect: An error on ' + self[i])
+                traceback.print_exc()
         return result
 
     def get(self, document_id, default, http=None, warc=None):
@@ -52,7 +57,12 @@ class Segment(list):  # is a list of Files
 
     def iterate(self, func, need_http=False, need_warc=False):
         for f in self:
-            f.iterate(self, func, need_http, need_warc)
+            try:
+                f.iterate(func, need_http, need_warc)
+            except Exception:
+                import traceback
+                print('Segment#iterate: An error on ' + f)
+                traceback.print_exc()
 
     def read(self, segment_path):
         raise NotImplementedError()
@@ -65,7 +75,7 @@ class File(str):  # is the path to a gzip file
 
     def open(self):
         self.raw_io = open(self, 'rb', buffering=10**8)  # 100MB
-        self.io = gzip.GzipFile(self, fileobj=self.raw_io)
+        self.io = gzip.GzipFile(self, 'rb', fileobj=self.raw_io)
         self.read_meta()
 
     def close(self):
@@ -83,7 +93,7 @@ class File(str):  # is the path to a gzip file
             else:
                 meta[last_key] = meta.get(last_key, b'') + line
             line = self.io.readline()
-            if -1 < line.find(b'WARC/'):
+            if 0 == line.find(b'WARC/'):
                 break
         self.line = line
         self.meta = meta
@@ -93,28 +103,34 @@ class File(str):  # is the path to a gzip file
 
     def collect(self, document_ids, http=None, warc=None):
         self.open()
-        result = []
+        current_id, result = '(None)', []
         for target_id in sorted(document_ids):
-            while(self.is_active()):
-                w = {}
-                self.read_warc(w)
-                current_id = DocumentID(w[b'WARC-TREC-ID'].rstrip())
-                if current_id == target_id:
-                    if warc is not None:
-                        warc.append(w)
-                    if http is None:
-                        self.read_http()
+            try:
+                while(self.is_active()):
+                    w = {}
+                    self.read_warc(w)
+                    current_id = DocumentID(w[b'WARC-TREC-ID'].rstrip())
+                    if current_id == target_id:
+                        if warc is not None:
+                            warc.append(w)
+                        if http is None:
+                            self.read_http()
+                        else:
+                            h = {}
+                            self.read_http(h)
+                            http.append(h)
+                        result.append(self.read_body())
+                        self.read_tail()
+                        break
                     else:
-                        h = {}
-                        self.read_http(h)
-                        http.append(h)
-                    result.append(self.read_body())
-                    self.read_tail()
-                    break
-                else:
-                    self.read_http()
-                    self.read_body()
-                    self.read_tail()
+                        self.read_http()
+                        self.read_body()
+                        self.read_tail()
+            except Exception:
+                import traceback
+                print('File#collect: An error on ' + current_id)
+                traceback.print_exc()
+                break
         self.close()
         if len(result) < len(document_ids):
             raise IndexError('Some documents were not found.')
@@ -149,11 +165,11 @@ class File(str):  # is the path to a gzip file
             while(line.find(b'Content-Length: ')):
                 line = self.io.readline()
             self.content_length = int(line.rsplit(b': ', 1)[-1])
-            while(line.find(b'HTTP/')):
+            while(not re.match(b'\r?\n', line)):
                 line = self.io.readline()
         else:
             last_key = None
-            while(line.find(b'HTTP/')):
+            while(not re.match(b'\r?\n', line)):
                 if(-1 < line.find(b': ')):
                     last_key, value = line.split(b': ', 1)
                     result[last_key] = value
@@ -161,7 +177,7 @@ class File(str):  # is the path to a gzip file
                     result[last_key] = result.get(last_key, b'') + line
                 line = self.io.readline()
             self.content_length = int(result[b'Content-Length'])
-        self.line = line
+        self.line = self.io.readline()  # Skip the empty line
 
     def read_http(self, result=None):
         line = self.line
