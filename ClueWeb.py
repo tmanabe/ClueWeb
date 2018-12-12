@@ -3,24 +3,21 @@ import re
 
 
 class Collection(dict):  # is a dict where str (segment name) -> Segment
-    def collect(self, document_ids, http=None, warc=None):
-        d = {}
-        result = []
-        for document_id in sorted(document_ids):
+
+    def collect(self, document_ids, https=None, warcs=None):
+        buffer, results = {}, {}
+        for document_id in sorted(set(document_ids)):
             document_id = DocumentID(document_id)
-            if document_id.segment not in d:
-                d[document_id.segment] = []
-            d[document_id.segment].append(document_id)
-        for (s, document_ids) in d.items():
-            result += self[s].collect(document_ids, http, warc)
-        return result
+            if document_id.segment not in buffer:
+                buffer[document_id.segment] = []
+            buffer[document_id.segment].append(document_id)
+        for (segment, document_ids) in buffer.items():
+            results.update(self[segment].collect(document_ids, https, warcs))
+        return results
 
-    def get(self, document_id, default, http=None, warc=None):
-        return self.get_file(document_id).get(document_id, default, http, warc)
-
-    def get_file(self, document_id):
+    def get(self, document_id):
         document_id = DocumentID(document_id)
-        return self[document_id.segment].get_file(document_id)
+        return self[document_id.segment].get(document_id)
 
     def iterate(self, func, need_http=False, need_warc=False):
         for s in self.values():
@@ -31,37 +28,34 @@ class Collection(dict):  # is a dict where str (segment name) -> Segment
 
 
 class Segment(list):  # is a list of Files
-    def collect(self, document_ids, http=None, warc=None):
-        d = {}
-        result = []
-        for document_id in sorted(document_ids):
+
+    def collect(self, document_ids, https=None, warcs=None):
+        buffer, results = {}, {}
+        for document_id in sorted(set(document_ids)):
             document_id = DocumentID(document_id)
-            if document_id.file not in d:
-                d[document_id.file] = []
-            d[document_id.file].append(document_id)
-        for (i, document_ids) in d.items():
+            if document_id.file not in buffer:
+                buffer[document_id.file] = []
+            buffer[document_id.file].append(document_id)
+        for (i, document_ids) in buffer.items():
             try:
-                result += self[i].collect(document_ids, http, warc)
+                results.update(self[i].collect(document_ids, https, warcs))
             except Exception:
                 import traceback
                 print('Segment#collect: An error on ' + self[i])
                 traceback.print_exc()
-        return result
+        return results
 
-    def get(self, document_id, default, http=None, warc=None):
-        return self.get_file(document_id).get(document_id, default, http, warc)
-
-    def get_file(self, document_id):
+    def get(self, document_id):
         document_id = DocumentID(document_id)
-        return self[document_id.file]
+        return self[document_id.file].get(document_id)
 
     def iterate(self, func, need_http=False, need_warc=False):
-        for f in self:
+        for file in self:
             try:
-                f.iterate(func, need_http, need_warc)
+                file.iterate(func, need_http, need_warc)
             except Exception:
                 import traceback
-                print('Segment#iterate: An error on ' + f)
+                print('Segment#iterate: An error on ' + file)
                 traceback.print_exc()
 
     def read(self, segment_path):
@@ -69,6 +63,7 @@ class Segment(list):  # is a list of Files
 
 
 class File(str):  # is the path to a gzip file
+
     def __new__(self, path):
         self = str.__new__(self, path)
         return self
@@ -101,25 +96,25 @@ class File(str):  # is the path to a gzip file
     def is_active(self):
         return self.line != b''
 
-    def collect(self, document_ids, http=None, warc=None):
+    def collect(self, document_ids, https=None, warcs=None):
         self.open()
-        current_id, result = '(None)', []
-        for target_id in sorted(document_ids):
+        current_id, results = '(None)', {}
+        for target_id in sorted(set(document_ids)):
             try:
                 while(self.is_active()):
                     w = {}
                     self.read_warc(w)
                     current_id = DocumentID(w[b'WARC-TREC-ID'].rstrip())
                     if current_id == target_id:
-                        if warc is not None:
-                            warc.append(w)
-                        if http is None:
+                        if warcs is not None:
+                            warcs[current_id] = w
+                        if https is None:
                             self.read_http()
                         else:
                             h = {}
                             self.read_http(h)
-                            http.append(h)
-                        result.append(self.read_body())
+                            https[current_id] = h
+                        results[current_id] = self.read_body()
                         self.read_tail()
                         break
                     else:
@@ -132,36 +127,30 @@ class File(str):  # is the path to a gzip file
                 traceback.print_exc()
                 break
         self.close()
-        if len(result) < len(document_ids):
+        if len(results) < len(set(document_ids)):
             raise IndexError('Some documents were not found.')
-        else:
-            return result
+        return results
 
-    def get(self, document_id, default, http=None, warc=None):
-        try:
-            return self.collect([document_id], http, warc)[0]
-        except IndexError:
-            if http is not None:
-                http.append(default)
-            if warc is not None:
-                warc.append(default)
-            return default
+    def get(self, document_id):
+        h, w = {}, {}
+        b = self.collect([document_id], h, w).get(document_id)
+        return b, h.get(document_id), w.get(document_id)
 
     def iterate(self, func, need_http=False, need_warc=False):
         self.open()
         while(self.is_active()):
-            warc = {}
-            self.read_warc(warc if need_warc else None)
-            http = {}
-            self.read_http(http if need_http else None)
+            warc = {} if need_warc else None
+            self.read_warc(warc)
+            http = {} if need_http else None
+            self.read_http(http)
             body = self.read_body()
             func(body, http, warc)
             self.read_tail()
         self.close()
 
-    def read_warc(self, result=None):
+    def read_warc(self, results=None):
         line = self.line
-        if result is None:
+        if results is None:
             while(line.find(b'Content-Length: ')):
                 line = self.io.readline()
             self.content_length = int(line.rsplit(b': ', 1)[-1])
@@ -172,18 +161,18 @@ class File(str):  # is the path to a gzip file
             while(not re.match(b'\r?\n', line)):
                 if(-1 < line.find(b': ')):
                     last_key, value = line.split(b': ', 1)
-                    result[last_key] = value
+                    results[last_key] = value
                 else:
-                    result[last_key] = result.get(last_key, b'') + line
+                    results[last_key] = results.get(last_key, b'') + line
                 line = self.io.readline()
-            self.content_length = int(result[b'Content-Length'])
+            self.content_length = int(results[b'Content-Length'])
         self.line = self.io.readline()  # Skip the empty line
 
-    def read_http(self, result=None):
+    def read_http(self, results=None):
         line = self.line
         self.line = None
         length = self.content_length - len(line)
-        if result is None:
+        if results is None:
             while(not re.match(b'\r?\n', line)):
                 line = self.io.readline()
                 length -= len(line)
@@ -192,9 +181,9 @@ class File(str):  # is the path to a gzip file
             while(not re.match(b'\r?\n', line)):
                 if(-1 < line.find(b': ')):
                     last_key, value = line.split(b': ', 1)
-                    result[last_key] = value
+                    results[last_key] = value
                 else:
-                    result[last_key] = result.get(last_key, b'') + line
+                    results[last_key] = results.get(last_key, b'') + line
                 line = self.io.readline()
                 length -= len(line)
         self.content_length = length

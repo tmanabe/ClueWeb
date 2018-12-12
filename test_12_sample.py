@@ -20,10 +20,9 @@ class Test12Sample(TestCase):
             'clueweb12-0013wb-88-00410',
             'clueweb12-0013wb-88-00966',
         ]
-
         results = collection.collect(ids)
 
-        file = collection.get_file(ids[0])
+        file = collection['0013wb'][88]
         assert 15 == len(file.meta)
         assert b'WARC/1.0\r\n' == file.meta[None]
         assert b'283\r\n\r\n' == file.meta[b'Content-Length']
@@ -31,112 +30,100 @@ class Test12Sample(TestCase):
         assert file.meta[b'description'].endswith(b'\n\r\n\r\n')
 
         assert 3 == len(results)
-        assert results[0].startswith(b'<!DOCTYPE')
-        assert results[0].endswith(b'</html>')
-        assert results[1].startswith(b'\n\n<!DOCTYPE')
-        assert results[1].endswith(b'</html>\n')
-        assert results[2].startswith(b'<!DOCTYPE')
-        assert results[2].endswith(b'</HTML>\r\n')
+        result = results['clueweb12-0013wb-88-00000']
+        assert result.startswith(b'<!DOCTYPE')
+        assert result.endswith(b'</html>')
+        result = results['clueweb12-0013wb-88-00410']
+        assert result.startswith(b'\n\n<!DOCTYPE')
+        assert result.endswith(b'</html>\n')
+        result = results['clueweb12-0013wb-88-00966']
+        assert result.startswith(b'<!DOCTYPE')
+        assert result.endswith(b'</HTML>\r\n')
 
-        https, warcs = [], []
+        https, warcs = {}, {}
         results = collection.collect(ids, https, warcs)
 
         assert 3 == len(results)
-        assert results[0].startswith(b'<!DOCTYPE')
-        assert results[0].endswith(b'</html>')
-        assert results[1].startswith(b'\n\n<!DOCTYPE')
-        assert results[1].endswith(b'</html>\n')
-        assert results[2].startswith(b'<!DOCTYPE')
-        assert results[2].endswith(b'</HTML>\r\n')
+        result = results['clueweb12-0013wb-88-00000']
+        assert result.startswith(b'<!DOCTYPE')
+        assert result.endswith(b'</html>')
+        result = results['clueweb12-0013wb-88-00410']
+        assert result.startswith(b'\n\n<!DOCTYPE')
+        assert result.endswith(b'</html>\n')
+        result = results['clueweb12-0013wb-88-00966']
+        assert result.startswith(b'<!DOCTYPE')
+        assert result.endswith(b'</HTML>\r\n')
 
         assert 3 == len(https)
-        assert 7 == len(https[0])
-        assert b'HTTP/1.1 200 OK\r\n' == https[0][None]
-        assert b'bytes\r\n' == https[0][b'Accept-Ranges']
-        assert b'text/html\r\n' == https[0][b'Content-Type']
-        assert 11 == len(https[1])
-        assert b'HTTP/1.1 200 OK\r\n' == https[1][None]
-        assert b'48481\r\n' == https[1][b'Content-Length']
-        assert b'close\r\n' == https[1][b'Connection']
-        assert 8 == len(https[2])
-        assert b'HTTP/1.1 200 OK\r\n' == https[2][None]
-        assert b'ASP.NET\r\n' == https[2][b'X-Powered-By']
-        assert b'private\r\n' == https[2][b'Cache-control']
+        http = https['clueweb12-0013wb-88-00000']
+        assert 7 == len(http)
+        assert b'HTTP/1.1 200 OK\r\n' == http[None]
+        assert b'bytes\r\n' == http[b'Accept-Ranges']
+        assert b'text/html\r\n' == http[b'Content-Type']
+        http = https['clueweb12-0013wb-88-00410']
+        assert 11 == len(http)
+        assert b'HTTP/1.1 200 OK\r\n' == http[None]
+        assert b'48481\r\n' == http[b'Content-Length']
+        assert b'close\r\n' == http[b'Connection']
+        http = https['clueweb12-0013wb-88-00966']
+        assert 8 == len(http)
+        assert b'HTTP/1.1 200 OK\r\n' == http[None]
+        assert b'ASP.NET\r\n' == http[b'X-Powered-By']
+        assert b'private\r\n' == http[b'Cache-control']
 
         assert 3 == len(warcs)
-        assert 10 == len(warcs[0])
-        assert b'WARC/1.0\r\n' == warcs[0][None]
-        assert b'clueweb12-0013wb-88-00000\r\n' == warcs[0][b'WARC-TREC-ID']
-        assert b'44706\r\n' == warcs[0][b'Content-Length']
-        assert 10 == len(warcs[1])
-        assert b'WARC/1.0\r\n' == warcs[1][None]
-        assert b'clueweb12-0013wb-88-00410\r\n' == warcs[1][b'WARC-TREC-ID']
-        assert b'48753\r\n' == warcs[1][b'Content-Length']
-        assert 10 == len(warcs[2])
-        assert b'WARC/1.0\r\n' == warcs[2][None]
-        assert b'clueweb12-0013wb-88-00966\r\n' == warcs[2][b'WARC-TREC-ID']
-        assert b'11618\r\n' == warcs[2][b'Content-Length']
+        warc = warcs['clueweb12-0013wb-88-00000']
+        assert 10 == len(warc)
+        assert b'WARC/1.0\r\n' == warc[None]
+        assert b'clueweb12-0013wb-88-00000\r\n' == warc[b'WARC-TREC-ID']
+        assert b'44706\r\n' == warc[b'Content-Length']
+        warc = warcs['clueweb12-0013wb-88-00410']
+        assert 10 == len(warc)
+        assert b'WARC/1.0\r\n' == warc[None]
+        assert b'clueweb12-0013wb-88-00410\r\n' == warc[b'WARC-TREC-ID']
+        assert b'48753\r\n' == warc[b'Content-Length']
+        warc = warcs['clueweb12-0013wb-88-00966']
+        assert 10 == len(warc)
+        assert b'WARC/1.0\r\n' == warc[None]
+        assert b'clueweb12-0013wb-88-00966\r\n' == warc[b'WARC-TREC-ID']
+        assert b'11618\r\n' == warc[b'Content-Length']
 
     def test_get(self):
         collection = self.collection
 
-        results = []
-        results.append(collection.get('clueweb12-0013wb-88-00000', None))
-        results.append(collection.get('clueweb12-0013wb-88-00410', None))
-        results.append(collection.get('clueweb12-0013wb-88-00966', None))
-        results.append(collection.get('clueweb12-0013wb-88-99999', None))
-
-        assert results[0].startswith(b'<!DOCTYPE')
-        assert results[0].endswith(b'</html>')
-        assert results[1].startswith(b'\n\n<!DOCTYPE')
-        assert results[1].endswith(b'</html>\n')
-        assert results[2].startswith(b'<!DOCTYPE')
-        assert results[2].endswith(b'</HTML>\r\n')
-        assert results[3] is None
-
-        results, https, warcs = [], [], []
-        results.append(collection.get('clueweb12-0013wb-88-00000', None, https, warcs))
-        results.append(collection.get('clueweb12-0013wb-88-00410', None, https, warcs))
-        results.append(collection.get('clueweb12-0013wb-88-00966', None, https, warcs))
-        results.append(collection.get('clueweb12-0013wb-88-99999', None, https, warcs))
-
-        assert results[0].startswith(b'<!DOCTYPE')
-        assert results[0].endswith(b'</html>')
-        assert results[1].startswith(b'\n\n<!DOCTYPE')
-        assert results[1].endswith(b'</html>\n')
-        assert results[2].startswith(b'<!DOCTYPE')
-        assert results[2].endswith(b'</HTML>\r\n')
-        assert results[3] is None
-
-        assert 4 == len(https)
-        assert 7 == len(https[0])
-        assert b'HTTP/1.1 200 OK\r\n' == https[0][None]
-        assert b'bytes\r\n' == https[0][b'Accept-Ranges']
-        assert b'text/html\r\n' == https[0][b'Content-Type']
-        assert 11 == len(https[1])
-        assert b'HTTP/1.1 200 OK\r\n' == https[1][None]
-        assert b'48481\r\n' == https[1][b'Content-Length']
-        assert b'close\r\n' == https[1][b'Connection']
-        assert 8 == len(https[2])
-        assert b'HTTP/1.1 200 OK\r\n' == https[2][None]
-        assert b'ASP.NET\r\n' == https[2][b'X-Powered-By']
-        assert b'private\r\n' == https[2][b'Cache-control']
-        assert https[3] is None
-
-        assert 4 == len(warcs)
-        assert 10 == len(warcs[0])
-        assert b'WARC/1.0\r\n' == warcs[0][None]
-        assert b'clueweb12-0013wb-88-00000\r\n' == warcs[0][b'WARC-TREC-ID']
-        assert b'44706\r\n' == warcs[0][b'Content-Length']
-        assert 10 == len(warcs[1])
-        assert b'WARC/1.0\r\n' == warcs[1][None]
-        assert b'clueweb12-0013wb-88-00410\r\n' == warcs[1][b'WARC-TREC-ID']
-        assert b'48753\r\n' == warcs[1][b'Content-Length']
-        assert 10 == len(warcs[2])
-        assert b'WARC/1.0\r\n' == warcs[2][None]
-        assert b'clueweb12-0013wb-88-00966\r\n' == warcs[2][b'WARC-TREC-ID']
-        assert b'11618\r\n' == warcs[2][b'Content-Length']
-        assert warcs[3] is None
+        b, h, w = collection.get('clueweb12-0013wb-88-00000')
+        assert b.startswith(b'<!DOCTYPE')
+        assert b.endswith(b'</html>')
+        assert 7 == len(h)
+        assert b'HTTP/1.1 200 OK\r\n' == h[None]
+        assert b'bytes\r\n' == h[b'Accept-Ranges']
+        assert b'text/html\r\n' == h[b'Content-Type']
+        assert 10 == len(w)
+        assert b'WARC/1.0\r\n' == w[None]
+        assert b'clueweb12-0013wb-88-00000\r\n' == w[b'WARC-TREC-ID']
+        assert b'44706\r\n' == w[b'Content-Length']
+        b, h, w = collection.get('clueweb12-0013wb-88-00410')
+        assert b.startswith(b'\n\n<!DOCTYPE')
+        assert b.endswith(b'</html>\n')
+        assert 11 == len(h)
+        assert b'HTTP/1.1 200 OK\r\n' == h[None]
+        assert b'48481\r\n' == h[b'Content-Length']
+        assert b'close\r\n' == h[b'Connection']
+        assert 10 == len(w)
+        assert b'WARC/1.0\r\n' == w[None]
+        assert b'clueweb12-0013wb-88-00410\r\n' == w[b'WARC-TREC-ID']
+        assert b'48753\r\n' == w[b'Content-Length']
+        b, h, w = collection.get('clueweb12-0013wb-88-00966')
+        assert b.startswith(b'<!DOCTYPE')
+        assert b.endswith(b'</HTML>\r\n')
+        assert 8 == len(h)
+        assert b'HTTP/1.1 200 OK\r\n' == h[None]
+        assert b'ASP.NET\r\n' == h[b'X-Powered-By']
+        assert b'private\r\n' == h[b'Cache-control']
+        assert 10 == len(w)
+        assert b'WARC/1.0\r\n' == w[None]
+        assert b'clueweb12-0013wb-88-00966\r\n' == w[b'WARC-TREC-ID']
+        assert b'11618\r\n' == w[b'Content-Length']
 
     def test_iterate(self):
         def f(body, http, warc):
@@ -145,7 +132,7 @@ class Test12Sample(TestCase):
             warcs.append(warc)
 
         collection = self.collection
-        file = collection.get_file('clueweb12-0013wb-88-00000')
+        file = collection['0013wb'][88]
 
         results, https, warcs = [], [], []
         file.iterate(f)
@@ -158,13 +145,13 @@ class Test12Sample(TestCase):
         assert results[966].startswith(b'<!DOCTYPE')
         assert results[966].endswith(b'</HTML>\r\n')
 
-        assert 0 == len(https[0])
-        assert 0 == len(https[410])
-        assert 0 == len(https[966])
+        assert https[0] is None
+        assert https[410] is None
+        assert https[966] is None
 
-        assert 0 == len(warcs[0])
-        assert 0 == len(warcs[410])
-        assert 0 == len(warcs[966])
+        assert warcs[0] is None
+        assert warcs[410] is None
+        assert warcs[966] is None
 
         results, https, warcs = [], [], []
         file.iterate(f, True, True)

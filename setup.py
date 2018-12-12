@@ -3,9 +3,8 @@
 
 from distutils.core import setup
 setup(name='ClueWeb',
-      version='0.0.1',
+      version='0.0.2',
       py_modules=['ClueWeb',
                   'ClueWeb09',
                   'ClueWeb12',
-                  'ClueWebServer',
-                  'helper'])
+                  'ClueWebServer'])
