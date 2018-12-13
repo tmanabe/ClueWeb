@@ -169,24 +169,22 @@ class File(str):  # is the path to a gzip file
         self.line = self.io.readline()  # Skip the empty line
 
     def read_http(self, results=None):
-        line = self.line
-        self.line = None
-        length = self.content_length - len(line)
-        if results is None:
-            while(not re.match(b'\r?\n', line)):
-                line = self.io.readline()
-                length -= len(line)
-        else:
-            last_key = None
-            while(not re.match(b'\r?\n', line)):
+        line, length = self.line, self.content_length - len(self.line)
+        last_key = None
+        while(not re.match(b'\r*\n', line)):
+            if results is not None:
                 if(-1 < line.find(b': ')):
                     last_key, value = line.split(b': ', 1)
                     results[last_key] = value
                 else:
                     results[last_key] = results.get(last_key, b'') + line
-                line = self.io.readline()
-                length -= len(line)
-        self.content_length = length
+            line = self.io.readline()
+            length -= len(line)
+            if length < 0:
+                self.io.seek(-len(line), 1)
+                length += len(line)
+                break
+        self.line, self.content_length = None, length
 
     def read_body(self):
         length = self.content_length
