@@ -7,10 +7,7 @@ from ClueWeb12 import ClueWeb12
 from dateutil import parser as date_parser
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
-import json
 from socketserver import ThreadingMixIn
-import subprocess
-import sys
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
@@ -20,11 +17,20 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 class ClueWebServer(BaseHTTPRequestHandler):
 
     @classmethod
-    def run(cls, collection, arg_dict):
-        cls.collection = collection
+    def run(cls, arg_dict):
         cls.arg_dict = arg_dict
-        cls.server = ThreadedHTTPServer((arg_dict.address, arg_dict.port), cls)
-        cls.server.serve_forever()
+        if arg_dict.twelve:
+            cls.collection = ClueWeb12()
+            for disk in arg_dict.disks:
+                cls.collection.read(disk)
+        else:
+            cls.collection = ClueWeb09()
+            for disk in arg_dict.disks:
+                cls.collection.read_disk(disk)
+        ThreadedHTTPServer((arg_dict.address, arg_dict.port), cls).serve_forever()
+
+    def get_document(self, document_id):
+        return self.collection.get(document_id)
 
     def do_GET(self):
         hash = self.arg_dict.password
@@ -34,14 +40,10 @@ class ClueWebServer(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             return
+
         document_id = self.path.rsplit('/', 1)[-1]
-        if document_id in ['favicon.ico']:
-            self.send_response(404)
-            self.end_headers()
-            self.wfile.write(b'ClueWebServer: Not found')
-            return
         try:
-            b, h, w = self.collection.get(document_id)
+            b, h, w = self.get_document(document_id)
         except Exception:
             self.send_response(500)
             self.end_headers()
@@ -75,7 +77,7 @@ class ClueWebServer(BaseHTTPRequestHandler):
         return
 
 
-if __name__ == '__main__':
+def generate_basic_parser():
     argument_parser = ArgumentParser(
         description='Runs a HTTP server which serves ClueWeb collection'
     )
@@ -93,11 +95,6 @@ if __name__ == '__main__':
                                  metavar='str',
                                  nargs='+',
                                  type=str)
-    argument_parser.add_argument('disks',
-                                 help='the path to a ClueWeb disk',
-                                 metavar='path',
-                                 nargs='+',
-                                 type=str)
     argument_parser.add_argument('--password', '-P',
                                  default=None,
                                  help='basic password hash',
@@ -111,13 +108,15 @@ if __name__ == '__main__':
     argument_parser.add_argument('--twelve', '-t',
                                  action='store_true',
                                  help='loads ClueWeb12 (instead of 09)')
+    return argument_parser
+
+
+if __name__ == '__main__':
+    argument_parser = generate_basic_parser()
+    argument_parser.add_argument('disks',
+                                 help='the path to a ClueWeb disk',
+                                 metavar='path',
+                                 nargs='+',
+                                 type=str)
     arg_dict = argument_parser.parse_args()
-    if arg_dict.twelve:
-        collection = ClueWeb12()
-        for disk in arg_dict.disks:
-            collection.read(disk)
-    else:
-        collection = ClueWeb09()
-        for disk in arg_dict.disks:
-            collection.read_disk(disk)
-    ClueWebServer.run(collection, arg_dict)
+    ClueWebServer.run(arg_dict)
