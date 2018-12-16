@@ -105,9 +105,6 @@ def generate_basic_parser():
                                  help='the port of the server',
                                  metavar='int',
                                  type=int)
-    argument_parser.add_argument('--twelve', '-t',
-                                 action='store_true',
-                                 help='loads ClueWeb12 (instead of 09)')
     return argument_parser
 
 
@@ -118,5 +115,8 @@ if __name__ == '__main__':
                                  metavar='path',
                                  nargs='+',
                                  type=str)
+    argument_parser.add_argument('--twelve', '-t',
+                                 action='store_true',
+                                 help='loads ClueWeb12 (instead of 09)')
     arg_dict = argument_parser.parse_args()
     ClueWebServer.run(arg_dict)

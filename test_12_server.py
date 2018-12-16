@@ -1,6 +1,5 @@
-import os
-from test_params import DISKS_12
 from subprocess import Popen
+from test_params import DISKS_12
 from unittest import TestCase
 from urllib.request import Request
 from urllib.request import urlopen
@@ -21,7 +20,6 @@ class Test12Server(TestCase):
 
         finally:
             server.terminate()
-
 
     def test_base(self):
         script = __file__.replace('test_12_server', 'ClueWebServer')

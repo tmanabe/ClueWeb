@@ -1,5 +1,5 @@
-import os
 from ClueWeb12 import ClueWeb12
+import os
 from test_params import DISKS_12
 from unittest import TestCase
 
