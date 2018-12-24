@@ -70,7 +70,10 @@ class ClueWebServer(BaseHTTPRequestHandler):
             base = '<base href="%s">\n' % href
 
         self.send_response(200)
-        self.send_header('Content-Type', content_type)
+        try:
+            self.send_header('Content-Type', content_type)
+        except UnicodeEncodeError:
+            self.send_header('Content-Type', b'text/html')
         self.end_headers()
         self.wfile.write(base.encode(codec[0]))
         self.wfile.write(b)
