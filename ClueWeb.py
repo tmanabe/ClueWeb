@@ -158,7 +158,7 @@ class File(str):  # is the path to a gzip file
                 line = self.io.readline()
         else:
             last_key = None
-            while(not re.match(b'\r?\n', line)):
+            while(not re.match(b'\r?\n', line) or b'Content-Length' not in results):
                 if(-1 < line.find(b': ')):
                     last_key, value = line.split(b': ', 1)
                     results[last_key] = value
